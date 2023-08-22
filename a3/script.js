@@ -35,18 +35,32 @@ document.addEventListener("DOMContentLoaded", function() {
 
     function updateTotalPrice() {
         let totalPrice = 0;
+        let totalSeatsSelected = 0;
+
         ticketInputs.forEach(input => {
             let quantity = parseInt(input.value);
+            let maxQuantity = parseInt(input.getAttribute('max'));
+
+            totalSeatsSelected += quantity;
+
+            if (quantity > maxQuantity) {
+                input.value = maxQuantity;
+                quantity = maxQuantity;
+            }
+
             let fullPrice = parseFloat(input.nextElementSibling.getAttribute('data-full-price') || 0);
-            let discountPrice = parseFloat(input.nextElementSibling.innerText.split('/')[1].split('$')[1]); 
-            let selectedSession = document.querySelector('.selected'); 
+            let discountPrice = parseFloat(input.nextElementSibling.innerText.split('/')[1].split('$')[1]);
+            let selectedSession = document.querySelector('.selected');
             let isDiscounted = selectedSession ? selectedSession.getAttribute('data-session').endsWith('-dis') : false;
             let price = isDiscounted ? discountPrice : fullPrice;
             totalPrice += price * quantity;
         });
+
         if (window.location.pathname.endsWith('booking.php')) {
             document.getElementById('total-price').innerText = "Total Price: $" + totalPrice.toFixed(2);
-          }          
+        }
+
+        return totalSeatsSelected;
     }
 
     ticketInputs.forEach(input => {
@@ -55,16 +69,28 @@ document.addEventListener("DOMContentLoaded", function() {
 
     const sessionButtons = document.querySelectorAll('.session');
     sessionButtons.forEach(button => {
-        button.addEventListener('click', event => {
+        button.addEventListener('click', function() {
+            sessionButtons.forEach(btn => btn.classList.remove('error'));
+            
             sessionButtons.forEach(btn => btn.classList.remove('selected'));
-            event.currentTarget.classList.add('selected'); 
-            updateTotalPrice();
+            button.classList.add('selected');
+            
+            const selectedSessionValue = button.getAttribute('data-session');
+            document.getElementById('selected-session-input').value = selectedSessionValue;
         });
+    });
+
+    const form = document.querySelector('form');
+    form.addEventListener('submit', event => {
+        const totalSeatsSelected = updateTotalPrice();
+        if (totalSeatsSelected > 10) {
+            event.preventDefault();
+            alert("You can select a maximum of 10 seats across all seat types.");
+        }
     });
 
     updateTotalPrice();
 });
-
 
 function rememberMe(event) {
     console.log("Remember Me clicked");
@@ -145,7 +171,83 @@ document.addEventListener('DOMContentLoaded', function () {
       });
     });
   });
-  
-  
-  
-  
+
+  document.addEventListener("DOMContentLoaded", function () {
+    const bookingForm = document.getElementById("booking-form");
+    bookingForm.addEventListener("submit", function (event) {
+        event.preventDefault();
+        
+        const isValid = validateForm();
+        
+        if (isValid) {
+            bookingForm.submit();
+        }
+    });
+  });
+function validateForm() {
+    var nameInput = document.getElementById('name');
+    var mobileInput = document.getElementById('mobile');
+    var emailInput = document.getElementById('email');
+    var sessionButtons = document.querySelectorAll('.session');
+    var seatInputs = document.querySelectorAll('input[name^="seats["]');
+    
+    console.log('Starting form validation...');
+
+    nameInput.classList.remove('error');
+    mobileInput.classList.remove('error');
+    emailInput.classList.remove('error');
+    sessionButtons.forEach(button => button.classList.remove('error'));
+    seatInputs.forEach(input => input.classList.remove('error'));
+    
+    var isValid = true;
+    
+    if (nameInput.value.trim() === '') {
+        console.log('Name is empty.');
+        nameInput.classList.add('error');
+        isValid = false;
+    }
+    
+    var mobilePattern = /^(?:04\d{2}\s?\d{3}\s?\d{3}|04\d{2}\s?\d{6})$/;
+    if (!mobilePattern.test(mobileInput.value)) {
+        console.log('Mobile format is invalid.');
+        mobileInput.classList.add('error');
+        isValid = false;
+    }
+    
+    var emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailPattern.test(emailInput.value)) {
+        console.log('Email format is invalid.');
+        emailInput.classList.add('error');
+        isValid = false;
+    }
+    
+    var selectedSession = document.querySelector('.session.selected');
+    if (!selectedSession) {
+        console.log('No session selected.');
+        sessionButtons.forEach(button => button.classList.add('error'));
+        isValid = false;
+    }
+    
+    seatInputs.forEach(input => {
+        var quantity = parseInt(input.value, 10);
+        if (quantity < 0) {
+            console.log('Invalid seat quantity: ' + quantity);
+            input.classList.add('error');
+            isValid = false;
+        }
+    });
+
+    var hiddenSeatInputs = document.querySelectorAll('input[type="hidden"][name^="seats["]');
+    hiddenSeatInputs.forEach(input => {
+        var seatType = input.name;
+        var seatQuantity = parseInt(input.value, 10);
+    
+        if (seatQuantity > 0) {
+            console.log(`Seat type ${seatType} has ${seatQuantity} selected.`);
+        }
+    });
+    
+    
+    console.log('Validation result: ' + (isValid ? 'Valid' : 'Invalid'));
+    return isValid;
+}
