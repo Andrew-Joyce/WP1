@@ -19,6 +19,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = trim($_POST['email']);
     $selectedSession = isset($_POST['session']) ? $_POST['session'] : '';
     
+    $anySeatSelected = false;
+
+    $hiddenSeatTypes = [
+        'seats[STA-dis]',
+        'seats[STP-dis]',
+        'seats[STC-dis]',
+        'seats[FCA-dis]',
+        'seats[FCP-dis]',
+        'seats[FCC-dis]'
+    ];
+
+    foreach ($hiddenSeatTypes as $hiddenSeatType) {
+        $hiddenSeatQuantity = isset($_POST[$hiddenSeatType]) ? $_POST[$hiddenSeatType] : 0;
+        if ($hiddenSeatQuantity > 0) {
+            $anySeatSelected = true;
+        }
+    }
+
     if (empty($movieCode)) {
         $errors['movie'] = "No movie selected!";
     } else {
